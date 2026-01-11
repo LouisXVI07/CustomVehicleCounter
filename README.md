@@ -38,7 +38,8 @@ The pipeline is divided into three primary stages:
 The following sections describe each stage in detail.
 
 ---
-
+![Workflow Diagram](assets/workflow.png)
+---
 ## Stage 1 — Environment & Gate Calibration
 
 ### Temporal Median Background
