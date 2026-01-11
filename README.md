@@ -142,7 +142,11 @@ The approach is transparent, reproducible, and robust across diverse traffic pat
 
 ## Repository Structure
 
-main.py # Solution class and full pipeline
-assets # Workflow and Results
-requirements.txt # Python dependencies
-README.md # Documentation
+CustomVehicleCounter/
+├── main.py                # Main script containing Solution class
+├── requirements.txt       # Python dependencies
+├── assets/                # Images, workflow diagrams, demo videos
+│   ├── workflow.png
+│   ├── result_demo.mp4
+│   └── video_output.mp4
+└── README.md              # Project documentation
