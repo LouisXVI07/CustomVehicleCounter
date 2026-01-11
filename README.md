@@ -13,7 +13,7 @@ The objective of the challenge was to:
 - Use only classical image-processing techniques (OpenCV + NumPy)
 - Process videos from a static camera with vehicles moving away from the lens
 - Produce a single integer output
-- Run fully offline without internet access
+- Able to run fully offline without internet access
 - Avoid all learning-based or pre-trained models
 
 Explicitly prohibited:
