@@ -152,4 +152,28 @@ CustomVehicleCounter/
 │   └── video_output.mp4
 └── README.md              # Project documentation
 ```
+---
+## 🔧 Installation
 
+Install all required dependencies using:
+
+```bash
+pip install -r requirements.txt
+```
+---
+
+## ▶️ Usage
+
+Run the solution using the following code:
+
+```python
+from main import Solution
+
+sol = Solution()
+
+# The forward method returns the total integer count
+count = sol.forward("path/to/traffic_video.avi")
+
+print(f"Total Count: {count}")
+```
+---
