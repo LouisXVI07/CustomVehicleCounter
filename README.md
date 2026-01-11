@@ -140,8 +140,9 @@ The approach is transparent, reproducible, and robust across diverse traffic pat
 
 ---
 
-## Repository Structure
+## 📂 Repository Structure
 
+```
 CustomVehicleCounter/
 ├── main.py                # Main script containing Solution class
 ├── requirements.txt       # Python dependencies
@@ -150,3 +151,5 @@ CustomVehicleCounter/
 │   ├── result_demo.mp4
 │   └── video_output.mp4
 └── README.md              # Project documentation
+```
+
