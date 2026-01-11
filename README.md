@@ -1,186 +1,148 @@
-Team Pupils — Classical CV Vehicle Analytics
-Vehant Technologies 2-Day Hackathon | January 2026
+# Team Pupils — Classical Computer Vision Vehicle Counter
+### Vehant Technologies 2-Day Hackathon | January 2026
 
-This repository contains Team Pupils' winning classical computer vision solution for the Vehant Technologies Vehicle Count Challenge.
-The core objective was to build a vehicle counting system using only classical image processing—no deep learning, no pre-trained models, no neural networks.
+This repository contains Team Pupils’ winning classical computer vision solution for accurate vehicle counting under strict constraints prohibiting deep learning. The system is fully interpretable, deterministic, and implemented entirely using classical image processing techniques without any trained models or neural networks.
 
-Our pipeline blends geometry, texture analysis, predictive tracking, and adaptive morphology to achieve a highly stable counting system even under real-world distortions.
+---
 
-📌 Problem Statement & Requirements
+## Problem Statement
 
-The challenge was to estimate the total vehicle count in a traffic video where:
+The objective of the challenge was to:
 
-Vehicles move away from a static camera
+- Count the total number of vehicles in a traffic video
+- Use only classical image-processing techniques (OpenCV + NumPy)
+- Process videos from a static camera with vehicles moving away from the lens
+- Produce a single integer output
+- Run fully offline without internet access
+- Avoid all learning-based or pre-trained models
 
-Only classical CV techniques were allowed
+Explicitly prohibited:
 
-The solution must run offline using standard libraries
+- Deep learning detectors (YOLO, SSD, Faster R-CNN)
+- Pretrained segmentation networks
+- CNNs, embeddings, neural networks of any kind
+- Hardcoding video-specific patterns
 
-Output must be a single integer: the total vehicle count
+The approach required robust motion understanding, geometry analysis, and stable tracking without black-box inference.
 
-Restrictions included:
+---
 
-❌ No YOLO / SSD / Faster R-CNN / Deep Learning
+## Solution Overview
 
-❌ No pre-trained segmentation models
+The pipeline is divided into three primary stages:
 
-❌ No learned weights of any kind
+1. Environmental Calibration
+2. Real-Time Detection and Segmentation
+3. Predictive Persistent Tracking and Count-Locking
 
-❌ No hardcoding for specific videos
+The following sections describe each stage in detail.
 
-🛠️ Unified Processing Pipeline
+---
 
-Our solution uses a temporal–spatial CV pipeline, combining background modeling, geometric reasoning, Sobel texture verification, and predictive tracking.
+## Stage 1 — Environment & Gate Calibration
 
-The complete logic flow is visualized below (use your own Mermaid diagram file or embed GitHub-rendered block):
+### Temporal Median Background
+A background model is constructed by sampling frames across the video, eliminating all moving vehicles. This creates a stable baseline for foreground extraction.
 
-graph TD
-    classDef init fill:#f8f9fa,stroke:#343a40,stroke-width:2px,color:#212529;
-    classDef loop fill:#e7f5ff,stroke:#228be6,stroke-width:2px,color:#212529;
-    classDef logic fill:#f4fce3,stroke:#5c940d,stroke-width:2px,color:#212529;
-    classDef final fill:#fff5f5,stroke:#fa5252,stroke-width:3px,color:#212529;
+### Day/Night Auto-Detection
+The system analyzes global brightness:
+- Low brightness triggers Night Mode (CLAHE enhancement + heavier blurring)
+- Normal brightness uses standard filtering
 
-    subgraph Initialization ["Step 1: Environmental Calibration"]
-        A[Input Video File] --> B[Temporal Median Background Modeling]
-        B --> C{Detect Environment}
-        C -->|Avg Brightness < 65| D[Night Mode: CLAHE + High Blur]
-        C -->|Avg Brightness >= 65| E[Day Mode: Standard Filters]
-        B --> F[Hough Line Transform: Road Edge Detection]
-        F --> G[Calibrate Dynamic Angled Tripwire]
-    end
+### Automatic Tripwire Calibration
+Using Hough Line Transform on the background image:
+- Detects road boundaries
+- Computes road orientation
+- Generates a dynamically angled virtual tripwire for counting
 
-    subgraph Loop ["Step 2: Real-Time Detection & Tracking"]
-        H[Read Next Frame] --> I[Gaussian Blur & Frame Differencing]
-        I --> J[Adaptive Thresholding & Morphological Fusion]
-        J --> K[Contour Extraction]
-        
-        K --> L{Multi-Tiered Classification}
-        L -->|Area/Aspect Match| M[Structural Texture Verification: Sobel-Y]
-        L -->|Reject Noise| H
-        
-        M -->|Valid Vehicle| N[Centroid Generation]
-        M -->|Invalid/Human| H
-        
-        N --> O[Velocity-Aided Temporal Tracking]
-        O --> P{Cross Angled Tripwire?}
-        P -->|Yes & Not Counted| Q[Increment Count & Lock ID]
-        P -->|No / Already Counted| R[Update Movement Vector]
-    end
+This ensures accurate counting regardless of camera tilt or lane direction.
 
-    Q --> S{Stream End?}
-    R --> S
-    S -->|More Frames| H
-    S -->|Video End| T[Return Total Integer Count]
+---
 
-    class A,B,C,D,E,F,G init;
-    class H,I,J,K,O loop;
-    class L,M,P logic;
-    class T final;
+## Stage 2 — Real-Time Detection Pipeline
 
-⚖️ Constraints & Challenges Faced
-1. Deep Learning Prohibited
+### Preprocessing
+The system applies:
+- Grayscale conversion
+- Gaussian blurring
+- Frame differencing against the background model
 
-We had to engineer a fully classical CV solution capable of:
+### Adaptive Masking
+Threshold calculations are based on environment mode (day or night), ensuring reliable blob extraction across lighting conditions.
 
-Detecting vehicles of varying classes
+### Elliptical Morphological Fusion
+A large elliptical kernel is used to close gaps between fragmented vehicle regions. Unlike square kernels, the ellipse merges vertical splits (e.g., SUV bumper vs. rear window) while preserving separation between adjacent lanes.
 
-Avoiding false positives like pedestrians
+### Multi-Tiered Geometric Profiling
+Contours are evaluated using two profiles:
 
-Handling light changes and fragmentation
+**Car Profile:**
+- Large area
+- Horizontal aspect ratio
 
-2. Vehicle Fragmentation
+**Bike Profile:**
+- Smaller area
+- Slightly vertical aspect ratio
 
-SUVs often produce multiple disconnected blobs in classical differencing.
+This approach ensures sensitivity to motorcycles while avoiding pedestrian-like vertical shapes.
 
-3. Small Motorcycle Detection
+### Structural Sobel-Y Texture Verification
+To avoid false positives:
+- Sobel-Y operator measures horizontal edge intensity
+- Vehicles exhibit strong, rigid horizontal gradients
+- Shadows and pedestrians exhibit weak or vertical gradients
 
-Tiny bikes resemble noise in frame differencing.
+Only blobs that pass both geometric and texture filters qualify as valid vehicles.
 
-4. Perspective Distortion
+---
 
-Vehicles shrink and slow visually as they move away from the camera, requiring dynamic size scaling.
+## Stage 3 — Persistent Tracking & Counting
 
-💡 Key Innovations by Team Pupils
-1. Structural Sobel-Y Texture Verification
+### Centroid Tracking
+Each valid blob generates a centroid, which is linked to existing tracks through Euclidean matching.
 
-Problem: Shadows & pedestrians trigger false detections
-Solution: Apply Sobel-Y operator to detect horizontal metal-like structure
-Why it works: Vehicles have strong rigid horizontal gradients; pedestrians do not.
+### Velocity-Aided Prediction
+Each track maintains:
+- Estimated velocity vector (vx, vy)
+- Predicted next position
 
-2. Multi-Tiered Geometric Profiling
+This stabilizes tracking under partial occlusion or temporal mask flicker.
 
-Problem: Single area threshold fails for motorcycles
-Solution: Dual profiles
+### ID Persistence
+Tracks persist for up to 20 frames even when temporarily lost. This prevents:
 
-Cars → high area, wide aspect
+- Mask fragmentation
+- Double counting during flicker
+- Loss due to momentary occlusion
 
-Bikes → smaller area, vertical aspect
+### Tripwire Count Locking
+When a tracked centroid crosses the dynamically aligned angled tripwire:
+- The global count increments
+- The ID is permanently locked
+- It cannot be counted again under any conditions
 
-Benefit: High sensitivity to bikes while rejecting human-sized noise.
+This guarantees no double-counting even if the blob later splits or disappears.
 
-3. Adaptive Elliptical “Super-Fusion”
+---
 
-Problem: Mask fragmentation in SUVs
-Solution: Elliptical morphological closing (15×15 to 23×23)
-Why: Ellipses merge vertical splits but avoid merging across lanes.
+## Performance Characteristics
 
-4. ID-Locked Predictive Tracking
+The designed system demonstrates:
 
-Problem: Flicker or occlusion causes double-counting
-Solution:
+- Stable detection in day and night scenarios
+- Accurate tracking under occlusion
+- Correct handling of small motorcycles
+- Prevention of SUV double-counting
+- Full adherence to classical vision constraints
+- No deep learning or video-specific tuning
 
-Velocity prediction (vx, vy)
+The approach is transparent, reproducible, and robust across diverse traffic patterns.
 
-Sticky persistent IDs
+---
 
-Boolean count-lock flag
+## Repository Structure
 
-Result: No duplicate counts—even with mask flicker.
-
-📈 Performance Demonstration
-System Architecture (static diagram placeholder)
-
-Add your workflow diagram here:
-
-![Workflow](workflow.png)
-
-Real-Time Tracking Results
-
-Our dynamically angled tripwire automatically aligns with the detected road geometry and works across lanes.
-
-Demo Video 1 – Daylight / Standard Flow
-<video src="./demo_day.mp4" width="480" controls></video>
-
-Demo Video 2 – High Density Traffic
-<video src="./demo_day_2.mp4" width="480" controls></video>
-
-
-Replace video paths with your actual filenames when uploading.
-
-🛠️ Setup & Execution
-1. Install Requirements
-pip install -r requirements.txt
-
-2. Run the solution
-python main.py --video path/to/demo_video.avi
-
-3. Python Usage
-from main import Solution
-
-sol = Solution()
-count = sol.forward("path/to/traffic_video.mp4")
-print("Total Count:", count)
-
-📂 Repository Structure
-├── main.py                  # Contains Solution class and pipeline
-├── utils/                   # Helper modules (tracking, geometry, filtering)
-├── workflow.png             # Workflow diagram (add your file)
-├── demo_day.mp4             # Video demo (replace with real file)
-├── demo_day_2.mp4           # Second demo video
-├── requirements.txt
-└── README.md
-
-👥 Team Information
-
-Team Name: Pupils
-Hackathon: Vehant 2-Day CV Challenge (Jan 2026)
+main.py # Solution class and full pipeline
+assets # Workflow and Results
+requirements.txt # Python dependencies
+README.md # Documentation
